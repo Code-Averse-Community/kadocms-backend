@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+// provider = "postgresql"
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model tbm_user {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  email_verified Boolean  @default(false)
+  username       String?
+  full_name      String?
+  avatar         String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  is_deleted     Boolean  @default(false)
+
+  // Relations
+  created_teams  tbm_team[]        @relation("team_creator")
+  modified_teams tbm_team[]        @relation("team_modifier")
+  team_members   tbs_team_member[]
+
+  created_media  tbm_media[] @relation("media_creator")
+  modified_media tbm_media[] @relation("media_modifier")
+
+  @@index([created_at])
+}
+
+// Team model
+model tbm_team {
+  id         String   @id @default(uuid())
+  name       String
+  slug       String   @unique
+  status     String   @default("Active")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_deleted Boolean  @default(false)
+
+  // Creator / Modifier
+  creator_id String
+  creator    tbm_user @relation("team_creator", fields: [creator_id], references: [id])
+
+  modifier_id String?
+  modifier    tbm_user? @relation("team_modifier", fields: [modifier_id], references: [id])
+
+  // Relations
+  members      tbs_team_member[]
+  media_assets tbm_media[]
+
+  @@index([status])
+}
+
+// Team Member
+model tbs_team_member {
+  id         String   @id @default(uuid())
+  role       String   @default("Member")
+  status     String   @default("Active")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_deleted Boolean  @default(false)
+
+  team_id String
+  team    tbm_team @relation(fields: [team_id], references: [id])
+
+  user_id String
+  user    tbm_user @relation(fields: [user_id], references: [id])
+
+  @@index([team_id, user_id])
+}
+
+// Media Model
+model tbm_media {
+  id          String  @id @default(uuid())
+  name        String
+  media_type  String  @default("IMAGE")
+  file_size   Int?
+  file_path   String
+  width       Int?
+  height      Int?
+  alt_text    String?
+  description String?
+
+  creator_id String
+  creator    tbm_user @relation("media_creator", fields: [creator_id], references: [id])
+
+  modifier_id String?
+  modifier    tbm_user? @relation("media_modifier", fields: [modifier_id], references: [id])
+
+  team_id String
+  team    tbm_team @relation(fields: [team_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_deleted Boolean  @default(false)
+
+  @@index([team_id])
+}
+
+// Object Type - For CMS or Dynamic Entries
+model tbm_object_type {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  entries           tbm_entry[]
+  field_definitions tbm_field_definition[] @relation("object_type_fields")
+
+  relation_fields tbm_field_definition[] @relation("field_relation")
+
+  @@index([slug])
+}
+
+// Field Definition - Describes schema for entries
+model tbm_field_definition {
+  id            String  @id @default(uuid())
+  name          String
+  type          String  @default("TEXT")
+  required      Boolean @default(false)
+  multiple      Boolean @default(false)
+  placeholder   String?
+  default_value Json?
+
+  object_type_id String
+  object_type    tbm_object_type @relation("object_type_fields", fields: [object_type_id], references: [id])
+
+  relation_to_id String?
+  relation_to    tbm_object_type? @relation("field_relation", fields: [relation_to_id], references: [id])
+}
+
+// Entry - Actual data filled in by users
+model tbm_entry {
+  id             String          @id @default(uuid())
+  object_type_id String
+  object_type    tbm_object_type @relation(fields: [object_type_id], references: [id])
+  data           Json
+  created_at     DateTime        @default(now())
+
+  @@index([object_type_id])
+}
