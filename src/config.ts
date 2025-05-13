@@ -21,16 +21,4 @@ export const config = {
   get supabaseJwtKey() {
     return getRequired('SUPABASE_JWT_SECRET').asString();
   },
-  get apiGamesMerchantId() {
-    return getRequired('API_GAMES_MERCHANT').asString();
-  },
-  get apiGamesSecret() {
-    return getRequired('API_GAMES_SECRET').asString();
-  },
-  get apiGamesSignature() {
-    return getRequired('API_GAMES_SIGNATURE').asString();
-  },
-  get apiGamesBaseUrl() {
-    return getRequired('API_GAMES_BASE_URL').asString();
-  },
 };
